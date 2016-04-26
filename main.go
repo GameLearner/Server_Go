@@ -6,7 +6,7 @@ import (
     "Server/Network"
 )
 
-var sessionMap map[int]Network.Session;
+var sessionMap map[int]*Network.Session;
 
 func main() {
     
@@ -15,8 +15,7 @@ func main() {
         log.Fatalln(err);
     }
     
-    var sid int;
-    sessionMap = make(map[int]Network.Session);
+    sessionMap = make(map[int]*Network.Session);
     
     for {
         conn, err := listner.Accept();
@@ -26,20 +25,12 @@ func main() {
         }
         log.Println("new connection " + conn.RemoteAddr().String())
         
-        var session Network.Session;
+        session, _ := Network.NewSession(conn)
 
-        sid++;
+        go session.Run();
         
         sessionMap[session.ID] = session;
         
-        go handleConnect(conn);        
     }
 }
 
-
-func handleConnect(conn net.Conn) {
-    defer conn.Close();
-    for{
-        
-    }
-}

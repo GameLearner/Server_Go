@@ -63,10 +63,10 @@ func (protocol *Protocol)Marshal() ([]byte, error) {
 }
 
 //UnMarshal Protocol's Unmarshal UnSerialize protocol from bytes
-func (protocol *Protocol) UnMarshal(data []byte) error {
+func (protocol *Protocol) UnMarshal(data []byte) (int, error) {
     if(len(data) < 4) {
         //不完整的数据 待下次再读
-        return fmt.Errorf("incomplete data."); 
+        return 0, fmt.Errorf("incomplete data."); 
     }
     
     idSplit := data[:4]
@@ -75,14 +75,18 @@ func (protocol *Protocol) UnMarshal(data []byte) error {
     buf := bytes.NewReader(idSplit);
     err := binary.Read(buf, binary.LittleEndian, &protocol.ID);
     if nil != err {
-        return fmt.Errorf("Packet Id UnMarshal Error");
+        return 0, fmt.Errorf("Packet Id UnMarshal Error");
     }
     
     ms, ok := protocol.Packet.(proto.Unmarshaler);
     if !ok {
-        return fmt.Errorf("Packet data error");
+        return 0, fmt.Errorf("Packet data error");
     }
+    
     ms.Unmarshal(packSplit);
-    return nil
+    
+    pb, _ := protocol.Packet.(proto.Message);       
+    packetLen := proto.Size(pb)
+    return packetLen, nil
 }
 

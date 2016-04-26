@@ -7,6 +7,7 @@ import (
     "Server/Util"
     "bytes"
 	"sync/atomic"
+	"bufio"
 )
 
 
@@ -26,7 +27,7 @@ type Session struct {
 	conn        net.Conn
 	sPacketBuff chan interface{} // sync send buff
 	rPacketBuff chan interface{} // sync recv buff
-	recvCh      chan int         // sync recv
+	recvCh      chan []byte         // sync recv
 	recvData	[]byte
 	validFlag	int32			 // 
 }
@@ -39,7 +40,7 @@ func NewSession(conn net.Conn) (*Session, error) {
 
 	session.sPacketBuff = make(chan interface{}, MAXSENDNUM)
     session.rPacketBuff = make(chan interface{}, MAXRECVNUM)
-    session.recvCh = make(chan int)
+    session.recvCh = make(chan []byte)
 	
 	session.validFlag = -1;
     
@@ -59,13 +60,32 @@ func (session *Session) Run() {
 		session.send();
 	}();
 	//process
-	for {
-		session.handle();
-	}
+	session.handle();
 }
 
 func (session *Session) handle() {
-
+	
+	var buff bytes.Buffer;
+	//var buff []byte;
+	for{
+LOOP:		
+		select{
+			case data := <- session.recvCh:
+			{				
+				buff.Write(data);
+				for ; buff.Len() != 0; {
+					proto  := new(Protocol)
+					readLen, err := proto.UnMarshal(buff.Bytes())
+					if nil != err {
+						fmt.Println("handle error packet not complete");
+						goto LOOP
+					}
+					buff.Next(readLen);
+					fmt.Printf("recv data %v from ip %s ", proto.Packet, session.conn.RemoteAddr().String())
+				}
+			}
+		}
+	}
 }
 
 //recv do read data from socket
@@ -73,7 +93,12 @@ func (session *Session) recv() {
 	defer session.Close();
 	
 	for{
-		num, err := 
+		input := bufio.NewScanner(session.conn)
+		for input.Scan() {
+			data := input.Bytes()
+			fmt.Printf("%v\n", data)
+		}
+		//session.recvCh <- data;
 	}
 }
 
