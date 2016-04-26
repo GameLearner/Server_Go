@@ -9,7 +9,7 @@ import (
 )
 
 const (
-    TestID = iota;
+    LoginID = iota;
 
 )
 
@@ -29,7 +29,7 @@ var packetMap map[int32]interface{}
 
 func init()  {
     packetMap = make(map[int32]interface{})
-    packetMap[TestID] = new(PBProto.Test);
+    packetMap[LoginID] = new(PBProto.Login);
     
 }
 
