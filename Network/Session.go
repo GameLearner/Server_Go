@@ -108,6 +108,7 @@ func (session *Session) recv() {
 		}
 		data := dataBuff[:num]
 		fmt.Println(data);
+		session.recvCh <- data
 	}
 /*	
 	input := bufio.NewScanner(session.conn)
