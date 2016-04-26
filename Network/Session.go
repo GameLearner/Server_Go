@@ -7,7 +7,7 @@ import (
     "Server/Util"
     "bytes"
 	"sync/atomic"
-	"bufio"
+	//"bufio"
 )
 
 
@@ -91,21 +91,38 @@ LOOP:
 //recv do read data from socket
 func (session *Session) recv() {
 	defer session.Close();
-	
+	dataBuff := make([]byte, MAXRECVNUM)
 	for{
-		input := bufio.NewScanner(session.conn)
+		num, err := session.conn.Read(dataBuff);
+		if nil != err {
+			fmt.Println("recv error, error msg : " + err.Error())
+			return
+		}
+		data := dataBuff[:num]
+		fmt.Println(data);
+	}
+/*	
+	input := bufio.NewScanner(session.conn)
+
+	for{
 		for input.Scan() {
 			data := input.Bytes()
 			fmt.Printf("%v\n", data)
 		}
+		err := input.Err();
+		if nil != err {
+			fmt.Println("read error " + err.Error())
+		}
 		//session.recvCh <- data;
 	}
+*/
 }
 
 //Close close session
 func (session *Session) Close()  {
 	if atomic.CompareAndSwapInt32(&session.validFlag, 1, -1) {
 		session.conn.Close();
+		fmt.Printf("remote ip %s closed\n", session.conn.RemoteAddr())
 	}
 }
 
