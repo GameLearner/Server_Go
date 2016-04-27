@@ -16,7 +16,7 @@ const (
 //ProtocolInterface protocol interface
 type ProtocolInterface interface {
     Marshal() ([]byte, error)
-    UnMarshal(data []byte) error
+    UnMarshal(data []byte) (int, error)
 }
 
 //Protocol protocol 
@@ -50,11 +50,11 @@ func NewProtocol(id int32) *Protocol {
 func (protocol *Protocol)Marshal() ([]byte, error) {
     buff := new(bytes.Buffer);
     binary.Write(buff, binary.BigEndian, protocol.ID);
-    ms, ok := protocol.Packet.(proto.Marshaler);
+    ms, ok := protocol.Packet.(proto.Message);
     if !ok {
 		return nil, fmt.Errorf("protocol error not valid protobuff");
 	}
-    data, err := ms.Marshal()
+    data, err := proto.Marshal(ms)
     if nil != err {
         return nil, fmt.Errorf("Packet Marshal Error");
     }
@@ -77,16 +77,15 @@ func (protocol *Protocol) UnMarshal(data []byte) (int, error) {
     if nil != err {
         return 0, fmt.Errorf("Packet Id UnMarshal Error");
     }
-    
-    ms, ok := protocol.Packet.(proto.Unmarshaler);
+    protocol.Packet = packetMap[protocol.ID]
+    ms, ok := protocol.Packet.(proto.Message);
     if !ok {
         return 0, fmt.Errorf("Packet data error");
     }
-    
-    ms.Unmarshal(packSplit);
+    proto.Unmarshal(packSplit, ms)
     
     pb, _ := protocol.Packet.(proto.Message);       
-    packetLen := proto.Size(pb)
+    packetLen := proto.Size(pb) + 4
     return packetLen, nil
 }
 

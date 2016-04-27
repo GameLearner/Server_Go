@@ -38,7 +38,7 @@ func NewSession(conn net.Conn) (*Session, error) {
 	session.conn = conn
 
 	session.sPacketBuff = make(chan interface{}, MAXSENDNUM)
-    session.recvCh = make(chan []byte)
+	session.recvCh = make(chan []byte)
 	session.closeCh = make(chan struct{})
 	
 	session.validFlag = -1;
