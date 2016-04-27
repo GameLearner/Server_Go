@@ -6,7 +6,7 @@ import (
 	"time"
     "Server/Util"
     "bytes"
-	"sync/atomic"
+	//"sync/atomic"
 	//"bufio"
 )
 
@@ -28,6 +28,7 @@ type Session struct {
 	sPacketBuff chan interface{} // sync send buff
 	recvCh      chan []byte      // sync recv
 	validFlag	int32			 // 
+	closeCh		chan struct{}
 }
 
 //NewSession :Create new Session.
@@ -38,6 +39,7 @@ func NewSession(conn net.Conn) (*Session, error) {
 
 	session.sPacketBuff = make(chan interface{}, MAXSENDNUM)
     session.recvCh = make(chan []byte)
+	session.closeCh = make(chan struct{})
 	
 	session.validFlag = -1;
     
@@ -81,22 +83,29 @@ LOOP:
 					fmt.Printf("recv data %v from ip %s ", proto.Packet, session.conn.RemoteAddr().String())
 				}
 			}
+			case <-session.closeCh:
+			{
+				session.Close();
+			}
 		}
 	}
 }
 
 //recv do read data from socket
 func (session *Session) recv() {
-	defer session.Close();
+	//defer session.Close();
 	dataBuff := make([]byte, MAXRECVNUM)
 	for{
 		num, err := session.conn.Read(dataBuff);
+		fmt.Printf("recv num %d", num)
 		if nil != err {
 			fmt.Println("recv error, error msg : " + err.Error())
+			session.closeCh <- struct{}{}
 			return
 		}
 		data := dataBuff[:num]
 		fmt.Println(data);
+		session.recvCh <- data
 	}
 /*	
 	input := bufio.NewScanner(session.conn)
@@ -117,10 +126,10 @@ func (session *Session) recv() {
 
 //Close close session
 func (session *Session) Close()  {
-	if atomic.CompareAndSwapInt32(&session.validFlag, 1, -1) {
+	//if atomic.CompareAndSwapInt32(&session.validFlag, 1, -1) {
 		session.conn.Close();
 		fmt.Printf("remote ip %s closed\n", session.conn.RemoteAddr())
-	}
+	//}
 }
 
 func (session *Session) doSend(data []byte) (error)  {
@@ -137,7 +146,7 @@ func (session *Session) doSendBuff(buff *bytes.Buffer) (error)  {
 //send when buff overflow or time out do send to the socket
 //reduce the call times of system send
 func (session *Session) send() {
-	defer session.Close();
+	//defer session.Close();
 	
     var buff bytes.Buffer;
 	tickCh := time.Tick(20 * time.Millisecond)
@@ -164,6 +173,10 @@ func (session *Session) send() {
 						
 					}
 				}
+			}
+			case <-session.closeCh:
+			{
+				return
 			}
 		}
 	}
