@@ -29,10 +29,11 @@ type Session struct {
 	recvCh      chan []byte      // sync recv
 	validFlag	int32			 // 
 	closeCh		chan struct{}
+	OnSessionClose func(session *Session)
 }
 
 //NewSession :Create new Session.
-func NewSession(conn net.Conn) (*Session, error) {
+func NewSession(conn net.Conn, onClose func(session *Session)) (*Session, error) {
 	session := new(Session)
 	session.ID = Util.GetUniqID()
 	session.conn = conn
@@ -42,6 +43,7 @@ func NewSession(conn net.Conn) (*Session, error) {
 	session.closeCh = make(chan struct{})
 	
 	session.validFlag = -1;
+	session.OnSessionClose = onClose
     
 	return session, nil
 }
@@ -80,7 +82,7 @@ LOOP:
 						goto LOOP
 					}
 					buff.Next(readLen);
-					fmt.Printf("recv data %v from ip %s ", proto.Packet, session.conn.RemoteAddr().String())
+					//fmt.Printf("recv data %v from ip %s ", proto.Packet, session.conn.RemoteAddr().String())
 				}
 			}
 			case <-session.closeCh:
@@ -97,14 +99,12 @@ func (session *Session) recv() {
 	dataBuff := make([]byte, MAXRECVNUM)
 	for{
 		num, err := session.conn.Read(dataBuff);
-		fmt.Printf("recv num %d", num)
 		if nil != err {
 			fmt.Println("recv error, error msg : " + err.Error())
 			session.closeCh <- struct{}{}
 			return
 		}
 		data := dataBuff[:num]
-		fmt.Println(data);
 		session.recvCh <- data
 	}
 /*	
@@ -128,7 +128,10 @@ func (session *Session) recv() {
 func (session *Session) Close()  {
 	//if atomic.CompareAndSwapInt32(&session.validFlag, 1, -1) {
 		session.conn.Close();
-		fmt.Printf("remote ip %s closed\n", session.conn.RemoteAddr())
+		fmt.Printf("remote ip %s closed\n", session.conn.RemoteAddr())		
+		if nil != session.OnSessionClose {
+			session.OnSessionClose(session)
+		}
 	//}
 }
 

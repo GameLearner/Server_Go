@@ -16,16 +16,17 @@ func main() {
     }
     
     sessionMap = make(map[int]*Network.Session);
-    
+    count := 0;
     for {
         conn, err := listner.Accept();
         if nil != err {
             log.Println(err);
             continue;
         }
-        log.Println("new connection " + conn.RemoteAddr().String())
+        count++
+        log.Printf("new connection %s, connections = %d", conn.RemoteAddr().String(), count)
         
-        session, _ := Network.NewSession(conn)
+        session, _ := Network.NewSession(conn, nil)
 
         go session.Run();
         
