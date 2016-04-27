@@ -75,15 +75,18 @@ LOOP:
 			{				
 				buff.Write(data);
 				for ; buff.Len() != 0; {
-					proto  := new(Protocol)
-					readLen, err := proto.UnMarshal(buff.Bytes())
-					if nil != err {
-						fmt.Println("handle error packet not complete");
-						fmt.Println(buff.Bytes())
-						goto LOOP
+					protocol  := new(Protocol)
+					readLen, err := protocol.UnMarshal(buff.Bytes())
+					if readLen < 0 { //Invalid Packet
+						fmt.Println("handle data error: " + err.Error())
+						session.Close();
+						goto LOOP;											 
+					}
+					if readLen == 0 { //Incomplete protocol leave to next loop to complete recv protocol
+						goto LOOP;
 					}
 					buff.Next(readLen);
-					//fmt.Printf("recv data %v from ip %s ", proto.Packet, session.conn.RemoteAddr().String())
+					//fmt.Printf("recv data %v from ip %s ", protocol.Packet, session.conn.RemoteAddr().String())
 				}
 			}
 			case <-session.closeCh:

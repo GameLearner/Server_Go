@@ -52,7 +52,7 @@ func (protocol *Protocol)Marshal() ([]byte, error) {
     binary.Write(buff, binary.BigEndian, protocol.ID);
     ms, ok := protocol.Packet.(proto.Message);
     if !ok {
-		return nil, fmt.Errorf("protocol error not valid protobuff");
+		return nil, fmt.Errorf("Protocol error not valid protobuff");
 	}
     data, err := proto.Marshal(ms)
     if nil != err {
@@ -77,15 +77,23 @@ func (protocol *Protocol) UnMarshal(data []byte) (int, error) {
     if nil != err {
         return 0, fmt.Errorf("Packet Id UnMarshal Error");
     }
-    protocol.Packet = packetMap[protocol.ID]
-    ms, ok := protocol.Packet.(proto.Message);
-    if !ok {
-        return 0, fmt.Errorf("Packet data error");
-    }
-    proto.Unmarshal(packSplit, ms)
     
-    pb, _ := protocol.Packet.(proto.Message);       
-    packetLen := proto.Size(pb) + 4
+    packet, ok := packetMap[protocol.ID]
+    protocol.Packet = packet
+    
+    if !ok {
+        return -1, fmt.Errorf("Invalid packetId, need Close client???")
+    }
+    
+    ms, _ := protocol.Packet.(proto.Message);
+
+    err = proto.Unmarshal(packSplit, ms)
+    
+    if nil != err {
+        return 0, fmt.Errorf("PBMessage Unmarshal Error!!! incomplete packet or need close client")
+    }
+    
+    packetLen := proto.Size(ms) + 4
     return packetLen, nil
 }
 
