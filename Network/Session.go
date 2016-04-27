@@ -79,6 +79,7 @@ LOOP:
 					readLen, err := proto.UnMarshal(buff.Bytes())
 					if nil != err {
 						fmt.Println("handle error packet not complete");
+						fmt.Println(buff.Bytes())
 						goto LOOP
 					}
 					buff.Next(readLen);
@@ -88,6 +89,7 @@ LOOP:
 			case <-session.closeCh:
 			{
 				session.Close();
+				return
 			}
 		}
 	}

@@ -24,13 +24,14 @@ func main() {
             continue;
         }
         count++
-        log.Printf("new connection %s, connections = %d", conn.RemoteAddr().String(), count)
-        
-        session, _ := Network.NewSession(conn, nil)
+        go func ()  {
+            log.Printf("new connection %s, connections = %d", conn.RemoteAddr().String(), count)
 
-        go session.Run();
+            session, _ := Network.NewSession(conn, nil)
+            session.Run();
+        }()
         
-        sessionMap[session.ID] = session;
+        //sessionMap[session.ID] = session;
         
     }
 }
