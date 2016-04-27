@@ -26,9 +26,7 @@ type Session struct {
 	ServerID    int
 	conn        net.Conn
 	sPacketBuff chan interface{} // sync send buff
-	rPacketBuff chan interface{} // sync recv buff
-	recvCh      chan []byte         // sync recv
-	recvData	[]byte
+	recvCh      chan []byte      // sync recv
 	validFlag	int32			 // 
 }
 
@@ -39,7 +37,6 @@ func NewSession(conn net.Conn) (*Session, error) {
 	session.conn = conn
 
 	session.sPacketBuff = make(chan interface{}, MAXSENDNUM)
-    session.rPacketBuff = make(chan interface{}, MAXRECVNUM)
     session.recvCh = make(chan []byte)
 	
 	session.validFlag = -1;
