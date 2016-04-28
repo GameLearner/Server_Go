@@ -7,7 +7,6 @@ import (
     "Server/Util"
     "bytes"
 	//"sync/atomic"
-	//"bufio"
 )
 
 
@@ -78,15 +77,16 @@ LOOP:
 					protocol  := new(Protocol)
 					readLen, err := protocol.UnMarshal(buff.Bytes())
 					if readLen < 0 { //Invalid Packet
-						fmt.Println("handle data error: " + err.Error())
+						fmt.Printf("handle data error: " + err.Error() + "session id = %d\n", session.ID)
 						session.Close();
 						goto LOOP;											 
 					}
 					if readLen == 0 { //Incomplete protocol leave to next loop to complete recv protocol
 						goto LOOP;
 					}
+
+					session.SendPacket(protocol)
 					buff.Next(readLen);
-					//fmt.Printf("recv data %v from ip %s ", protocol.Packet, session.conn.RemoteAddr().String())
 				}
 			}
 			case <-session.closeCh:
@@ -109,31 +109,19 @@ func (session *Session) recv() {
 			session.closeCh <- struct{}{}
 			return
 		}
+
 		data := dataBuff[:num]
+
 		session.recvCh <- data
 	}
-/*	
-	input := bufio.NewScanner(session.conn)
 
-	for{
-		for input.Scan() {
-			data := input.Bytes()
-			fmt.Printf("%v\n", data)
-		}
-		err := input.Err();
-		if nil != err {
-			fmt.Println("read error " + err.Error())
-		}
-		//session.recvCh <- data;
-	}
-*/
 }
 
 //Close close session
 func (session *Session) Close()  {
 	//if atomic.CompareAndSwapInt32(&session.validFlag, 1, -1) {
 		session.conn.Close();
-		fmt.Printf("remote ip %s closed\n", session.conn.RemoteAddr())		
+		fmt.Printf("session close: session id = %d remote ip %s closed\n", session.ID, session.conn.RemoteAddr())		
 		if nil != session.OnSessionClose {
 			session.OnSessionClose(session)
 		}
@@ -170,6 +158,7 @@ func (session *Session) send() {
 				if (buff.Len() + len(data)) >= SENDBUFFSIZE {
 					err = session.doSendBuff(&buff)
 				} 
+
                 buff.Write(data);
                  
 			}
